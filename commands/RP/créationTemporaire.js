@@ -8,7 +8,7 @@ module.exports = {
 	async execute(interaction) {
         const creation_perso_button = new ButtonBuilder({
             custom_id: "creation_perso_button",
-            style: ButtonStyle.Primary,
+            style: ButtonStyle.Success,
             label: "Je souhaite créer un personnage",
             emoji: {
                 name: "🔨"
@@ -17,7 +17,7 @@ module.exports = {
         })
 
 		const embed_board = new EmbedBuilder({
-            description: "Salutations !\n\nAlors, je sais, vous devez être extrêmement perdu dans (pas) tant de salons ! Peut-être qu'après tout ce discours, vous voudriez vous créer un personnage et commencer votre aventure !\n\nDans ce cas, je vous en pris ! Prenez votre temps et lancez votre périple !",
+            description: "Salutations !\n\nAlors, je sais, vous devez être extrêmement perdu dans (pas) tant de salons ! Peut-être qu'après tout ce discours, vous voudriez vous créer un personnage et commencer votre aventure !\n\nDans ce cas, je vous en prie ! Prenez votre temps et lancez votre périple !",
             footer: {
                 text: "1 personnage par compte | 1 voyage sans retour",
             },
