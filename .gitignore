@@ -1,4 +1,7 @@
 
 config.json
 log_à_conserver1.js
-./database/fiche-rp.json
+database
+*.json
+database/fiche-rp.json
+database/level.json
