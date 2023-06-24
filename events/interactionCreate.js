@@ -1,4 +1,4 @@
-const { Events, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ChannelType, PermissionsBitField } = require("discord.js");
+const { Events, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ChannelType, PermissionsBitField, EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const { writeFile } = require('fs')
 const fiche_json = require("../database/fiche-rp.json")
 function SaveFicheBDD() {
@@ -14,14 +14,9 @@ module.exports = {
         if (interaction.isButton()) {
             if (interaction.customId === "creation_perso_button") {
                 if (fiche_json[interaction.user.id]) {
-                    interaction.deferReply({
+                    interaction.reply({
+                        content: "Vous avez déjà créé un personnage !",
                         ephemeral: true
-                    }).then(() => {
-                        setTimeout(() => {
-                            interaction.editReply({
-                                content: "Vous avez déjà créé un personnage !"
-                            })
-                        }, 2000)
                     })
                 } else {
                     const text_input_nom = new TextInputBuilder({
@@ -60,6 +55,13 @@ module.exports = {
                 let name = `${nom_fields}_${prénom_fields}`
                 if(nom_fields === "") {
                     name = `${prénom_fields}`
+                }
+
+                function nom(nooo) {
+                    if (nooo === "") {
+                        return "()"
+                    }
+                    return nom_fields
                 }
 
                 fiche_json[interaction.user.id] = {}
