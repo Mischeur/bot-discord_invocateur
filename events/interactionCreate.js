@@ -4,6 +4,29 @@ const fiche_json = require("../database/fiche-rp.json")
 function SaveFicheBDD() {
     writeFile("./database/fiche-rp.json", JSON.stringify(fiche_json), (err) => { })
 }
+function RéinitialiseDisableButton(interaction) {
+    const RéinitialiseDisableButton = new Promise((resolve) => {
+        let messages_row_à_désac = interaction.channel.lastMessage
+        let row_à_désac = messages_row_à_désac.components[0].components
+    
+        const row_désac = new ActionRowBuilder()
+    
+        for (let a = 0; a < row_à_désac.length; a++) {
+            const button_désac = new ButtonBuilder(row_à_désac[a].data).setDisabled(true).setStyle(ButtonStyle.Danger)
+            row_désac.addComponents([button_désac])
+        }
+    
+        messages_row_à_désac.edit({
+            embeds: messages_row_à_désac.embeds,
+            components: [row_désac]
+        }).then(() => {
+            resolve()
+        })
+    })
+
+    return RéinitialiseDisableButton
+}
+
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -84,44 +107,35 @@ module.exports = {
                     const remplissage_infos_button_âge = new ButtonBuilder({
                         customId: "remplissage_infos_âge",
                         emoji: {
-                            name: '🔢'
+                            name: '💬'
                         },
-                        label: 'Âge',
-                        style: ButtonStyle.Primary,
-                        disabled: false
-                    })
-
-                    const remplissage_infos_button_genre = new ButtonBuilder({
-                        customId: "remplissage_infos_genre",
-                        emoji: {
-                            name: '🚻'
-                        },
-                        label: 'Genre',
-                        style: ButtonStyle.Primary,
-                        disabled: false
-                    })
-
-                    const remplissage_infos_button_origine = new ButtonBuilder({
-                        customId: "remplissage_infos_origine",
-                        emoji: {
-                            name: '🇫🇷'
-                        },
-                        label: 'Origine',
+                        label: 'Répondre',
                         style: ButtonStyle.Primary,
                         disabled: false
                     })
 
                     const remplissage_infos_row = new ActionRowBuilder({
-                        components: [remplissage_infos_button_âge, remplissage_infos_button_genre, remplissage_infos_button_origine]
+                        components: [remplissage_infos_button_âge]
                     })
 
                     const remplissage_infos_embeds = new EmbedBuilder({
                         author: {
                             name: interaction.user.username,
-                            iconURL: interaction.user.displayAvatarURL()
+                            icon_url: interaction.user.displayAvatarURL()
                         },
-                        title: "Ajout d'informations complémentaires",
-                        description: "Félicitation ! Tu as réussi la première étape de ta création d'informations !\n\nPour l'instant, tu as seulement le prénom et le nom, ou seulement le nom... Il te reste maintenant plus qu'à renseigner les autres informations nécessaires à ce pseudo tutoriel !",
+                        description: `Hmmm...
+                        
+                        Ah ! Bonjour ! Tu dois être... ${fiche_json[interaction.user.id]["prénom"]} ? Ah oui, je me disais bien que tu devais être une personne que je connaissais bien !
+                        
+                        Je sais que tu dois te dire ce que tu fais ici, dans une zone inter-dimensionnelle. Mais ne t'inquiètes pas, je vais t'expliquer... Alors, je me présente, moi c'est l'Invocateur, je suis une sorte de guide pour toutes personnes qui entrent dans le monde..., toutes les autres personnes comme toi possèdent un lien de communication avec moi !
+                        
+                        Mais avant de continuer, j'aimerais savoir... quel âge as-tu ?`,
+                        footer: {
+                            text: "Avancé de l'histoire : " + fiche_json[interaction.user.id]["avancé_histoire"],
+                        },
+                        image: {
+                            url: "https://wallpapers.com/images/hd/fantasy-space-0us40pagx65ges3f.jpg"
+                        },
                     })
                         .setColor('LuminousVividPink')
                         .setTimestamp()
@@ -131,6 +145,18 @@ module.exports = {
                         components: [remplissage_infos_row]
                     })
 
+                }).then(() => {
+                    interaction.guild.channels.edit("1122131842125025350", {
+                        permissionOverwrites: [
+                            {
+                                id: interaction.user.id,
+                                allow: [PermissionsBitField.Flags.ViewChannel]
+                            },
+                        ]
+                    })
+                }).then(() => {
+                    const joueur_rp_role = interaction.guild.roles.cache.get('914595477150892093')
+                    interaction.member.roles.add(joueur_rp_role)
                 }).then(() => {
                     SaveFicheBDD()
                 })
@@ -142,6 +168,121 @@ module.exports = {
                     ephemeral: true
                 })
             }
+        }
+
+
+        /** Renseignement d'informations supplémentaire **/
+        if (interaction.isButton()) {
+
+            /** ÂGE **/
+            if (interaction.customId === "remplissage_infos_âge") {
+                const remplissage_infos_âges_input = new TextInputBuilder({
+                    custom_id: "remplissage_infos_âges_input",
+                    label: "Réponse",
+                    placeholder: "9 ~ 40",
+                    min_length: 1,
+                    max_length: 2,
+                    required: true,
+                    style: TextInputStyle.Short,
+                })
+
+                const action_row_remplissage_infos_âges = new ActionRowBuilder({
+                    components: [remplissage_infos_âges_input],
+                })
+
+                const modals_remplissage_infos_âges = new ModalBuilder({
+                    components: [action_row_remplissage_infos_âges],
+                    custom_id: "remplissage_infos_âges_modals",
+                    title: "Quel est l'âge de ton personnage ?"
+                })
+
+                interaction.showModal(modals_remplissage_infos_âges)
+            }
+
+            /** ORIGINE **/
+            if (interaction.customId === "remplissage_infos_origine") {
+
+            }
+
+            /** GENRE **/
+            if (interaction.customId === "remplissage_infos_genre") {
+
+            }
+
+        }
+        if (interaction.isModalSubmit()) {
+
+            /** Âge **/
+            if (interaction.customId === "remplissage_infos_âges_modals") {
+                RéinitialiseDisableButton(interaction).then(() => {
+                    let âge_fields = interaction.fields.getTextInputValue("remplissage_infos_âges_input")
+                    let âge_int = parseInt(âge_fields)
+                    if (isNaN(âge_int)) {
+                        const error_NaN_âge = new EmbedBuilder({
+                            author: {
+                                name: interaction.user.username,
+                                icon_url: interaction.user.displayAvatarURL(),
+                            },
+                            description: `Alors, je ne peux pas te voir, mais je suis presque sûr que ce n'est pas ton âge... Même si c'est très drôle comme réponse... Mais plus sérieusement, quel âge as-tu ?`,
+                            footer: {
+                                text: "Avancé de l'histoire : " + fiche_json[interaction.user.id]["avancé_histoire"],
+                            },
+                        }).setColor('Red')
+
+                        const remplissage_infos_button_âge = new ButtonBuilder({
+                            customId: "remplissage_infos_âge",
+                            emoji: {
+                                name: '💬'
+                            },
+                            label: 'Répondre',
+                            style: ButtonStyle.Primary,
+                            disabled: false
+                        })
+    
+                        const remplissage_infos_row = new ActionRowBuilder({
+                            components: [remplissage_infos_button_âge]
+                        })
+
+                        interaction.reply({
+                            embeds: [error_NaN_âge],
+                            components: [remplissage_infos_row]
+                        })
+                    } else if (âge_int > 40 || âge_int < 9) {
+                        const error_NaN_âge = new EmbedBuilder({
+                            author: {
+                                name: interaction.user.username,
+                                icon_url: interaction.user.displayAvatarURL(),
+                            },
+                            description: `Alors... Il me semble que tu es trop ${âge_int > 40 ? "âgé(e)" : "jeune"} pour rejoindre l'aventure... Normalement, la tranche d'âge que je m'étais défini était d'entre 9 ans et 40 ans. Mais dans ce cas, je pense que tu te moques un peu de moi. Plus sérieusement, quel âge as-tu ?`,
+                            footer: {
+                                text: "Avancé de l'histoire : " + fiche_json[interaction.user.id]["avancé_histoire"],
+                            },
+                        }).setColor('Red')
+
+                        const remplissage_infos_button_âge = new ButtonBuilder({
+                            customId: "remplissage_infos_âge",
+                            emoji: {
+                                name: '💬'
+                            },
+                            label: 'Répondre',
+                            style: ButtonStyle.Primary,
+                            disabled: false
+                        })
+    
+                        const remplissage_infos_row = new ActionRowBuilder({
+                            components: [remplissage_infos_button_âge]
+                        })
+
+                        interaction.reply({
+                            embeds: [error_NaN_âge],
+                            components: [remplissage_infos_row]
+                        })
+                    } else {
+                        
+                    }
+                })
+            }
+
         }
 
 
