@@ -1,10 +1,19 @@
-const { Events, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ChannelType, PermissionsBitField, EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ComponentType } = require("discord.js");
+const { Events, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalBuilder, ChannelType, PermissionsBitField, EmbedBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, ComponentType } = require("discord.js");
 const { writeFile } = require('fs')
+
+
 const fiche_json = require("../database/fiche-rp.json");
 const { request } = require("undici");
 function SaveFicheBDD() {
-    writeFile("./database/fiche-rp.json", JSON.stringify(fiche_json), (err) => { })
+    const save = new Promise((resolve) => {
+        writeFile("./database/fiche-rp.json", JSON.stringify(fiche_json), (err) => { })
+        resolve()
+    })
+
+    return save
 }
+
+
 function RéinitialiseDisableComponents(interaction) {
     const RéinitialiseDisableButton = new Promise((resolve) => {
         let messages_row_à_désac = interaction.channel.lastMessage
@@ -32,6 +41,57 @@ function RéinitialiseDisableComponents(interaction) {
     })
 
     return RéinitialiseDisableButton
+}
+
+
+function CreateEmbedChannelGestion(interaction) {
+    const embed = new EmbedBuilder({
+        author: {
+            name: interaction.user.username,
+            icon_url: interaction.user.displayAvatarURL()
+        },
+        footer: {
+            text: "Avancé de l'histoire : " + fiche_json[interaction.user.id]["avance_histoire"],
+        },
+    }).setTimestamp().setColor('Gold')
+
+    return embed
+}
+
+/**
+ * @param {object} stats
+ */
+function StatsEmbedsAjoutStats0_2(interaction, stats) {
+
+    return CreateEmbedChannelGestion(interaction).setTitle('Gestion des statistiques').addFields([
+        {
+            name: "Force :",
+            value: stats['force'].toString(),
+            inline: true
+        },
+        {
+            name: "Agilité :",
+            value: stats['agilite'].toString(),
+            inline: true
+        },
+        {
+            name: "Endurance :",
+            value: stats['endurance'].toString(),
+            inline: true
+        },
+        {
+            name: "Dextérité :",
+            value: stats['dexterite'].toString(),
+            inline: true
+        },
+        {
+            name: "Mental :",
+            value: stats['mental'].toString(),
+            inline: true
+        }
+    ]).setFooter({
+        text: `Reste ${stats['restante']} point${stats['restante'] > 1 ? "s" : ""} de stats à distribuer !`
+    })
 }
 
 
@@ -95,8 +155,9 @@ module.exports = {
                 }
 
                 fiche_json[interaction.user.id] = {}
-                fiche_json[interaction.user.id]["nom"] = nom_fields
-                fiche_json[interaction.user.id]["prenom"] = prénom_fields
+                fiche_json[interaction.user.id]['générals'] = {}
+                fiche_json[interaction.user.id]['générals']["nom"] = nom_fields
+                fiche_json[interaction.user.id]['générals']["prenom"] = prénom_fields
                 fiche_json[interaction.user.id]["avance_histoire"] = "0.1"
 
                 await interaction.guild.channels.create({
@@ -125,30 +186,18 @@ module.exports = {
                         components: [remplissage_infos_button_âge]
                     })
 
-                    const remplissage_infos_embeds = new EmbedBuilder({
-                        author: {
-                            name: interaction.user.username,
-                            icon_url: interaction.user.displayAvatarURL()
-                        },
-                        description: `Hmmm...
-                        
-                        Ah ! Bonjour ! Tu dois être... ${fiche_json[interaction.user.id]["prenom"]} ? Ah oui, je me disais bien que tu devais être une personne que je connaissais bien !
-                        
-                        Je sais que tu dois te dire ce que tu fais ici, dans une zone inter-dimensionnelle. Mais ne t'inquiètes pas, je vais t'expliquer... Alors, je me présente, moi c'est l'Invocateur, je suis une sorte de guide pour toutes personnes qui entrent dans le monde..., toutes les autres personnes comme toi possèdent un lien de communication avec moi !
-                        
-                        Mais avant de continuer, j'aimerais savoir... quel âge as-tu ?`,
-                        footer: {
-                            text: "Avancé de l'histoire : " + fiche_json[interaction.user.id]["avance_histoire"],
-                        },
-                        image: {
-                            url: "https://wallpapers.com/images/hd/fantasy-space-0us40pagx65ges3f.jpg"
-                        },
-                    })
-                        .setColor('Gold')
-                        .setTimestamp()
-
                     channel.send({
-                        embeds: [remplissage_infos_embeds],
+                        embeds: [
+                            CreateEmbedChannelGestion(interaction)
+                                .setDescription(`Hmmm...
+                        
+                                    Ah ! Bonjour ! Tu dois être... ${fiche_json[interaction.user.id]['générals']["prenom"]} ? Ah oui, je me disais bien que tu devais être une personne que je connaissais bien !
+                        
+                                    Je sais que tu dois te dire ce que tu fais ici, dans une zone inter-dimensionnelle. Mais ne t'inquiètes pas, je vais t'expliquer... Alors, je me présente, moi c'est l'Invocateur, je suis une sorte de guide pour toutes personnes qui entrent dans le monde..., toutes les autres personnes comme toi possèdent un lien de communication avec moi !
+                        
+                                    Mais avant de continuer, j'aimerais savoir... quel âge as-tu ?`,)
+                                .setImage("https://wallpapers.com/images/hd/fantasy-space-0us40pagx65ges3f.jpg")
+                        ],
                         components: [remplissage_infos_row]
                     })
 
@@ -173,7 +222,7 @@ module.exports = {
         }
 
 
-        /** Renseignement d'informations supplémentaires **/
+        /** 0.1 : Renseignement d'informations supplémentaires **/
         if (interaction.isButton()) {
 
             /** ÂGE **/
@@ -200,7 +249,7 @@ module.exports = {
 
                 interaction.showModal(modals_remplissage_infos_âges)
             }
-            
+
             /** ORIGINE **/
             if (interaction.customId === "remplissage_infos_origine") {
                 const remplissage_infos_origine_input = new TextInputBuilder({
@@ -292,7 +341,7 @@ module.exports = {
                             components: [remplissage_infos_row]
                         })
                     } else {
-                        fiche_json[interaction.user.id]["age"] = âge_fields
+                        fiche_json[interaction.user.id]['générals']["age"] = âge_fields
                         SaveFicheBDD()
 
                         const remplissage_infos_select_genre = new StringSelectMenuBuilder({
@@ -331,19 +380,11 @@ module.exports = {
                             components: [remplissage_infos_select_genre]
                         })
 
-                        const remplissage_infos_embeds = new EmbedBuilder({
-                            author: {
-                                name: interaction.user.username,
-                                icon_url: interaction.user.displayAvatarURL()
-                            },
-                            description: `Hmmm... Je vois que tu as ${fiche_json[interaction.user.id]["âge"] = âge_fields} ans... Je ne sais pas si c'est jeune ou pas, après tout, j'avais pris des valeurs au hasard pour le filtre de ma sélection. Bref, depuis tout à l'heure, je voulais t'appeler jeune homme ou jeune fille, mais je ne sais même pas quel est ton genre... Pourrais-tu m'aiguiller ?`,
-                            footer: {
-                                text: "Avancé de l'histoire : " + fiche_json[interaction.user.id]["avance_histoire"],
-                            }
-                        }).setColor('Gold').setTimestamp()
-
                         interaction.reply({
-                            embeds: [remplissage_infos_embeds],
+                            embeds: [
+                                CreateEmbedChannelGestion(interaction)
+                                    .setDescription(`Hmmm... Je vois que tu as ${fiche_json[interaction.user.id]['générals']["age"] = âge_fields} ans... Je ne sais pas si c'est jeune ou pas, après tout, j'avais pris des valeurs au hasard pour le filtre de ma sélection. Bref, depuis tout à l'heure, je voulais t'appeler jeune homme ou jeune fille, mais je ne sais même pas quel est ton genre... Pourrais-tu m'aiguiller ?`)
+                            ],
                             components: [remplissage_infos_row_genre]
                         })
                     }
@@ -379,7 +420,7 @@ module.exports = {
                             style: ButtonStyle.Primary,
                             disabled: false
                         })
-    
+
                         const remplissage_infos_row = new ActionRowBuilder({
                             components: [remplissage_infos_button_origine]
                         })
@@ -411,7 +452,7 @@ module.exports = {
                             style: ButtonStyle.Success,
                             disabled: false
                         })
-    
+
                         const remplissage_infos_row = new ActionRowBuilder({
                             components: [remplissage_infos_button_origine]
                         })
@@ -420,7 +461,8 @@ module.exports = {
                             embeds: [embed_pays_fiche],
                             components: [remplissage_infos_row]
                         }).then(() => {
-                            fiche_json[interaction.user.id]['origine'] = origine_fields
+                            fiche_json[interaction.user.id]['générals']['origine'] = origine_fields
+                            SaveFicheBDD()
                         })
                     }
                 })
@@ -464,13 +506,179 @@ module.exports = {
                         embeds: [remplissage_infos_embeds],
                         components: [remplissage_infos_row]
                     }).then(() => {
-                        fiche_json[interaction.user.id]["genre"] = choix_genre_select
+                        fiche_json[interaction.user.id]['générals']["genre"] = choix_genre_select
                         SaveFicheBDD()
                     })
                 })
             }
         }
 
+
+        /** 0.2 : Statistiques **/
+        if (interaction.isButton()) {
+
+            /** Introductions */
+            if (interaction.customId === "suite 0.1") {
+                RéinitialiseDisableComponents(interaction).then(() => {
+                    fiche_json[interaction.user.id]["avance_histoire"] = "0.2"
+                    interaction.channel.edit({
+                        topic: `Avancé dans l'histoire : ${fiche_json[interaction.user.id]["avance_histoire"]}`
+                    })
+                    SaveFicheBDD()
+                }).then(() => {
+                    const choisir_stats_button = new ButtonBuilder({
+                        custom_id: "0.2 choisir_stats_button",
+                        label: "Distribuer les statistiques",
+                        style: ButtonStyle.Primary,
+                        emoji: {
+                            name: "🉑"
+                        }
+                    })
+
+                    const choisir_stats_row = new ActionRowBuilder({
+                        components: [choisir_stats_button]
+                    })
+
+                    interaction.reply({
+                        embeds: [
+                            CreateEmbedChannelGestion(interaction).setDescription(
+                                `Alors... Maintenant que tu m'as donné toutes tes informations, il faut que je t'attribue tes statistiques... Ah ? Tu ne sais pas ce que c'est ? Bon, je t'explique rapidement...
+                                
+                                (variation en fonction des situations)
+                                **Force** : 
+                                | - Attaque non-magique en combat : 2* (DGTs)
+                                | - Dés de force : 1*
+                                | - Coup critique : 1*
+                                | | => Moyenne d'un citoyen lambda : 2 ~ 3
+
+                                **Agilité** :
+                                | - Esquive : 1*
+                                | - Fuite : 1*
+                                | - Mouvement technique : 1*
+                                | - Attaque en premier : 1*
+                                | | => Moyenne d'un citoyen lambda : 1 ~ 2
+
+                                **Endurance** :
+                                | - Points de vie : 8*
+                                | - Résistance physique : 2*
+                                | - Résistance magique : 2*
+                                | | => Moyenne d'un citoyen lambda : 2 ~ 3
+
+                                **Dextérité** :
+                                | - Dés de fabrication : 1*
+                                | - Dés de modification sur un objet : 1*
+                                | - Précision des attaques (coup critique) : 0.5*
+                                | | => Moyenne d'un citoyen lambda : 1 ~ 2
+
+                                **Mental** :
+                                | - Volonté : 1*
+                                | - Résistance mentale : 1.5*
+                                
+                                PS : Un dé est réussi si la valeur est positive (en rajoutant les résultats des dés qui l'annulent).`
+                            )
+                        ],
+                        components: [choisir_stats_row]
+                    })
+                })
+            }
+
+            /** Choix des stats **/
+            let perso_fiche_stats = ""
+            if (fiche_json[interaction.user.id]) {
+                if (fiche_json[interaction.user.id]["stats"]) {
+                    perso_fiche_stats = fiche_json[interaction.user.id]["stats"]
+                }
+            }
+            const row = new ActionRowBuilder()
+            let stats = ["Force", "Agilité", "Dextérité", "Endurance", "Mental"]
+
+            for (let i = 0; i < stats.length; i++) {
+                const button = new ButtonBuilder({
+                    custom_id: `0.2 choisir_stats_add_${stats[i].toLocaleLowerCase('en-US')}`,
+                    style: ButtonStyle.Primary,
+                    label: stats[i],
+                    emoji: {
+                        name: '🆙'
+                    }
+                })
+                row.addComponents([button])
+            }
+            if (interaction.customId === "0.2 choisir_stats_button") {
+                RéinitialiseDisableComponents(interaction).then(() => {
+                    fiche_json[interaction.user.id]["stats"] = {}
+                    fiche_json[interaction.user.id]["stats"]["force"] = 1
+                    fiche_json[interaction.user.id]["stats"]["agilite"] = 1
+                    fiche_json[interaction.user.id]["stats"]["dexterite"] = 1
+                    fiche_json[interaction.user.id]["stats"]["endurance"] = 1
+                    fiche_json[interaction.user.id]["stats"]["mental"] = 1
+                    fiche_json[interaction.user.id]["stats"]["restante"] = 15
+                    SaveFicheBDD()
+                }).then(() => {
+                    perso_fiche_stats = fiche_json[interaction.user.id]["stats"]
+                    interaction.reply({
+                        embeds: [
+                            StatsEmbedsAjoutStats0_2(interaction, perso_fiche_stats)
+                        ],
+                        components: [row]
+                    })
+                })
+            }
+            if (interaction.customId === "0.2 choisir_stats_add_force") {
+                if (perso_fiche_stats['restante'] === 0) {
+                    interaction.message.edit({
+                        embeds: [
+                            StatsEmbedsAjoutStats0_2(interaction, perso_fiche_stats)
+                        ],
+                        components: [row],
+                    }).then(() => {
+                        RéinitialiseDisableComponents(interaction).then(() => {
+                            
+                        })
+                    })
+                }
+                perso_fiche_stats['force']++
+                perso_fiche_stats['restante']--
+                SaveFicheBDD()
+                if (perso_fiche_stats['restante'] === 0) {
+                    interaction.message.edit({
+                        embeds: [
+                            StatsEmbedsAjoutStats0_2(interaction, perso_fiche_stats)
+                        ],
+                        components: [row],
+                    }).then(() => {
+                        RéinitialiseDisableComponents(interaction).then(() => {
+
+                        })
+                    })
+                } else {
+                    interaction.message.edit({
+                        embeds: [
+                            StatsEmbedsAjoutStats0_2(interaction, perso_fiche_stats)
+                        ],
+                        components: [row],
+                    })
+                    interaction.reply({
+                        content: 'Ajouté !',
+                        ephemeral: true
+                    })
+                }
+            }
+            if (interaction.customId === "0.2 choisir_stats_add_dexterite") {
+
+            }
+            if (interaction.customId === "0.2 choisir_stats_add_mental") {
+
+            }
+            if (interaction.customId === "0.2 choisir_stats_add_endurance") {
+
+            }
+            if (interaction.customId === "0.2 choisir_stats_add_agilite") {
+
+            }
+            if (interaction.customId === "0.2 choisir_stats_suite") {
+
+            }
+        }
 
     }
 }
